@@ -3,9 +3,8 @@
 layout: home
 
 hero:
-  name: "NullSkyBlog"
-  text: "NullSky's Blog"
-  tagline: My great project tagline
+  name: "NullSky's Blog"
+  tagline: 我的 VuePress Blog
   actions:
     - theme: brand
       text: Markdown Examples
