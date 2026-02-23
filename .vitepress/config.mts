@@ -4,6 +4,8 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   srcDir: "markdown",
   
+  base: "/NullSkyBlog/",
+  
   title: "NullSkyBlog",
   description: "NullSky's Blog",
   themeConfig: {
