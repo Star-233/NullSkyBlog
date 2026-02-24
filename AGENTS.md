@@ -1,10 +1,11 @@
 # AGENTS.md - Agent Coding Guidelines for NullSkyBlog
 
-## Project Overview
+# :Snacks dashboard:Snacks dashboard# Project Overview
 
 NullSkyBlog is a VitePress-based static blog site. Content is written in Markdown (`.md`) files located in the `markdown/` directory. VitePress configuration is in `.vitepress/config.mts`.
 
 **Tech Stack:**
+
 - VitePress 2.0.0-alpha.16
 - Node.js (pnpm as package manager)
 
@@ -13,17 +14,20 @@ NullSkyBlog is a VitePress-based static blog site. Content is written in Markdow
 ## Build / Development Commands
 
 ### Development
+
 ```bash
 pnpm docs:dev       # Start local dev server with hot reload
 ```
 
 ### Build
+
 ```bash
 pnpm docs:build     # Build for production
 pnpm docs:preview   # Preview production build locally
 ```
 
 ### Running a Single Test
+
 No tests are currently configured in this project.
 
 ---
