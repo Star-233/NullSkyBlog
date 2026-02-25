@@ -21,4 +21,5 @@ export default withSidebar(defineConfig({
 }), {
   documentRootPath: 'markdown',
   sidebarRoot: '/',
+  useTitleFromFrontmatter: true
 })

