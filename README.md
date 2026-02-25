@@ -2,6 +2,8 @@
 
 基于 VitePress 搭建的静态博客网站。
 
+[链接](https://star-233.github.io/NullSkyBlog/)
+
 ## 技术栈
 
 - **VitePress** 2.0.0-alpha.16 - 静态网站生成器
@@ -49,41 +51,6 @@ NullSkyBlog/
 ├── package.json
 └── pnpm-lock.yaml
 ```
-
-## 写作指南
-
-### 添加新文章
-
-1. 在 `markdown/` 目录下创建新的 `.md` 文件
-2. 添加 Frontmatter 头部信息
-3. 使用 Markdown 编写内容，可嵌入 Vue 组件
-
-### Frontmatter 格式
-
-```yaml
----
-title: 文章标题
-outline: deep  # 可选：启用深层目录
----
-```
-
-### 嵌入 Vue 组件
-
-```vue
-<script setup>
-import { useData } from 'vitepress'
-
-const { frontmatter } = useData()
-</script>
-
-## {{ frontmatter.title }}
-```
-
-## 配置说明
-
-修改 `.vitepress/config.mts` 文件来配置主题、导航栏、侧边栏等。
-
-详细配置文档请参考：[VitePress 配置参考](https://vitepress.dev/reference/site-config)
 
 ## 许可证
 
