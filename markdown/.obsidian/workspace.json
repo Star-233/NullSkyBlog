@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "甘蔗.md",
+                "file": "main.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "甘蔗"
+              "title": "main"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "甘蔗.md",
+                "file": "main.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "甘蔗 的反向链接列表"
+              "title": "main 的反向链接列表"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "甘蔗.md",
+                "file": "main.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "甘蔗 的出链列表"
+              "title": "main 的出链列表"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "甘蔗.md",
+                "file": "main.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "甘蔗 的大纲"
+              "title": "main 的大纲"
             }
           },
           {
@@ -194,11 +194,12 @@
       "obsidian-spaced-repetition:复习卡片": false
     }
   },
-  "active": "338666a457d0095f",
+  "active": "e8b5360f2cfaa13a",
   "lastOpenFiles": [
+    "甘蔗.md",
+    "main.md",
     "未命名",
     "九宫幻方--暴力搜索.md",
-    "甘蔗.md",
     "Content-Type大小写绕过+php后缀检测绕过.md",
     "通过上传 .user.ini 配置文件来执行上传的文件.md",
     "通过 `include` 的文件上传漏洞.md",

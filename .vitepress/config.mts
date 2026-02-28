@@ -11,7 +11,7 @@ export default withSidebar(defineConfig({
   themeConfig: {
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Examples', link: '/markdown-examples' }
+      { text: 'MainPage', link: '/main' }
     ],
 
     socialLinks: [
