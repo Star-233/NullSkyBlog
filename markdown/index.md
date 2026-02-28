@@ -7,11 +7,8 @@ hero:
   tagline: 我的 VuePress Blog
   actions:
     - theme: brand
-      text: Markdown Examples
-      link: /markdown-examples
-    - theme: alt
-      text: API Examples
-      link: /api-examples
+      text: MainPage
+      link: /main
 
 features:
   - title: Feature A
