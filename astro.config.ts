@@ -8,6 +8,8 @@ import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import { rehypeHeadingIds, unified } from "@astrojs/markdown-remark";
 import rehypeCallouts from "rehype-callouts";
+import rehypeKatex from "rehype-katex";
+import remarkMath from "remark-math";
 import {
   transformerNotationDiff,
   transformerNotationHighlight,
@@ -45,11 +47,13 @@ export default defineConfig({
     // stay in package.json so a customised config importing them still builds,
     // and are removed in v8.
     processor: unified({
+      remarkPlugins: [remarkMath],
       rehypePlugins: [
         rehypeHeadingIds,
         rehypeInlineToc,
         rehypeCallouts,
         rehypeTableWrapper,
+        rehypeKatex,
       ],
     }),
     shikiConfig: {
