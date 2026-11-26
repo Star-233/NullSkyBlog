@@ -8,7 +8,7 @@ import IconSearch from "@/assets/icons/IconSearch.svg";
 import IconMoon from "@/assets/icons/IconMoon.svg";
 import IconX from "@/assets/icons/IconX.svg";
 import LinkButton from "./LinkButton.astro";
-import { stripBase, stripLocale } from "@/utils/withBase";
+import { getAssetPath, stripBase, stripLocale } from "@/utils/withBase";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
@@ -98,6 +98,18 @@ const isActive = (path: string) => {
             {t.nav.about}
           </a>
         </li>
+        {
+          import.meta.env.DEV && (
+            <li class="col-span-2">
+              <a
+                href={getAssetPath("studio")}
+                class="text-accent! font-semibold"
+              >
+                写作台
+              </a>
+            </li>
+          )
+        }
         {
           features.showArchives && (
             <li class="col-span-2">

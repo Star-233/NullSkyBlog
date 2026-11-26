@@ -1,0 +1,545 @@
+---
+import "@/styles/global.css";
+import "vditor/dist/index.css";
+
+const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
+---
+
+<!doctype html>
+<html lang="zh-cn">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>本地写作台 | NullSkyBlog</title>
+    <script is:inline>
+      (function () {
+        // Prevent Vite HMR full-reload from refreshing /studio when saving posts
+        const NativeWebSocket = window.WebSocket;
+        window.WebSocket = function (url, protocols) {
+          const ws =
+            protocols !== undefined
+              ? new NativeWebSocket(url, protocols)
+              : new NativeWebSocket(url);
+          const origAddEventListener = ws.addEventListener.bind(ws);
+          ws.addEventListener = function (type, listener, options) {
+            if (type === "message" && typeof listener === "function") {
+              const wrapped = function (event) {
+                try {
+                  if (typeof event.data === "string") {
+                    const payload = JSON.parse(event.data);
+                    if (payload && payload.type === "full-reload") {
+                      return;
+                    }
+                  }
+                } catch {}
+                return listener.call(this, event);
+              };
+              return origAddEventListener(type, wrapped, options);
+            }
+            return origAddEventListener(type, listener, options);
+          };
+          return ws;
+        };
+        window.WebSocket.prototype = NativeWebSocket.prototype;
+        Object.assign(window.WebSocket, NativeWebSocket);
+
+        const stored = localStorage.getItem("theme");
+        const prefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+        const theme = stored ?? (prefersDark ? "dark" : "light");
+        const root = document.documentElement;
+        root.setAttribute("data-theme", theme);
+        root.classList.toggle("dark", theme === "dark");
+      })();
+    </script>
+    <style is:global>
+      #studio-app .vditor {
+        border: none !important;
+        border-radius: 0 !important;
+      }
+      #studio-app .vditor-toolbar {
+        background-color: var(--background) !important;
+        border-bottom: 1px solid var(--border) !important;
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+      }
+      #studio-app .vditor-toolbar--pin {
+        z-index: 20 !important;
+      }
+      #studio-app .vditor-content {
+        background-color: var(--background) !important;
+      }
+      #studio-app .vditor-ir pre.vditor-reset,
+      #studio-app .vditor-wysiwyg pre.vditor-reset,
+      #studio-app .vditor-sv {
+        background-color: var(--background) !important;
+        color: var(--foreground) !important;
+        padding: 20px 32px 55vh 32px !important;
+        max-width: 920px;
+        margin: 0 auto;
+      }
+      #studio-app .vditor-preview {
+        background-color: var(--background) !important;
+      }
+      #studio-app .vditor-preview__action {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-background font-app text-foreground flex h-screen flex-col overflow-hidden"
+  >
+    <div
+      id="studio-app"
+      data-base={basePath}
+      class="flex h-full flex-col overflow-hidden"
+    >
+      <!-- Top Bar -->
+      <header
+        class="border-border bg-background flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2.5"
+      >
+        <div class="flex min-w-0 items-center gap-3">
+          <a
+            href={`${basePath}/`}
+            class="border-border hover:border-accent hover:text-accent rounded border px-2.5 py-1 text-xs font-medium whitespace-nowrap transition"
+          >
+            ← 返回博客
+          </a>
+          <span class="text-sm font-semibold whitespace-nowrap">
+            本地写作台
+          </span>
+          <span
+            class="bg-muted text-muted-foreground rounded px-2 py-0.5 text-xs whitespace-nowrap"
+          >
+            仅 DEV 本地可见
+          </span>
+          <span
+            id="active-file-path"
+            class="text-muted-foreground hidden truncate font-mono text-xs md:inline"
+          ></span>
+        </div>
+
+        <div class="flex shrink-0 items-center gap-2">
+          <span
+            id="save-status"
+            class="text-muted-foreground text-xs whitespace-nowrap"
+          >
+            已加载
+          </span>
+          <a
+            id="preview-post-btn"
+            href="#"
+            target="_blank"
+            rel="noopener"
+            class="border-border hover:border-accent hover:text-accent rounded border px-3 py-1.5 text-xs font-medium transition"
+          >
+            博客预览 ↗
+          </a>
+          <button
+            id="theme-toggle-btn"
+            type="button"
+            class="border-border hover:border-accent rounded border px-2.5 py-1.5 text-xs transition"
+            title="切换明暗主题"
+          >
+            🌓 主题
+          </button>
+          <button
+            id="save-post-btn"
+            type="button"
+            class="border-accent text-accent hover:bg-accent hover:text-accent-foreground rounded border px-3 py-1.5 text-xs font-medium transition"
+          >
+            保存 (Ctrl+S)
+          </button>
+          <button
+            id="open-publish-btn"
+            type="button"
+            class="bg-accent text-accent-foreground rounded px-3 py-1.5 text-xs font-medium transition hover:opacity-90"
+          >
+            提交并推送
+          </button>
+        </div>
+      </header>
+
+      <!-- Workspace Body -->
+      <div class="flex min-h-0 flex-1 overflow-hidden">
+        <!-- Left Sidebar: Post List -->
+        <aside
+          class="border-border bg-background flex w-64 shrink-0 flex-col border-r"
+        >
+          <div class="border-border space-y-2 border-b p-3">
+            <button
+              id="new-post-btn"
+              type="button"
+              class="bg-accent text-accent-foreground w-full rounded px-3 py-2 text-xs font-semibold transition hover:opacity-90"
+            >
+              + 新建文章
+            </button>
+            <input
+              id="post-search-input"
+              type="search"
+              placeholder="搜索标题、标签或文件名..."
+              class="border-border bg-background focus:border-accent w-full rounded border px-2.5 py-1.5 text-xs outline-none"
+            />
+          </div>
+          <div
+            id="post-list"
+            class="flex-1 space-y-1 overflow-y-auto p-2"
+          ></div>
+        </aside>
+
+        <!-- Right Main Workspace -->
+        <main
+          id="studio-main"
+          class="flex min-w-0 flex-1 flex-col overflow-y-auto"
+        >
+          <!-- Frontmatter Form -->
+          <section
+            id="frontmatter-panel"
+            class="border-border bg-background shrink-0 space-y-2.5 border-b px-4 py-3 text-xs"
+          >
+            <div class="grid grid-cols-1 gap-2.5 lg:grid-cols-12">
+              <label class="flex flex-col gap-1 lg:col-span-5">
+                <span class="text-muted-foreground font-medium">
+                  标题 (title) *
+                </span>
+                <input
+                  id="fm-title"
+                  type="text"
+                  placeholder="输入文章标题"
+                  class="border-border bg-background focus:border-accent rounded border px-2.5 py-1.5 text-sm font-medium outline-none"
+                />
+              </label>
+
+              <label class="flex flex-col gap-1 lg:col-span-4">
+                <span class="text-muted-foreground font-medium">
+                  发布时间 (pubDatetime) *
+                </span>
+                <div class="flex gap-1.5">
+                  <input
+                    id="fm-pubDatetime"
+                    type="text"
+                    placeholder="2026-11-26T19:00:00+08:00"
+                    class="border-border bg-background focus:border-accent min-w-0 flex-1 rounded border px-2.5 py-1.5 font-mono text-xs outline-none"
+                  />
+                  <button
+                    id="set-now-btn"
+                    type="button"
+                    class="border-border hover:border-accent rounded border px-2 py-1 whitespace-nowrap"
+                  >
+                    现在
+                  </button>
+                </div>
+              </label>
+
+              <div class="flex flex-col gap-1 lg:col-span-3">
+                <span class="text-muted-foreground font-medium">状态开关</span>
+                <div class="flex flex-wrap items-center gap-3 py-1">
+                  <label class="flex cursor-pointer items-center gap-1.5">
+                    <input
+                      id="fm-draft"
+                      type="checkbox"
+                      class="accent-accent"
+                    />
+                    <span>草稿 (draft)</span>
+                  </label>
+                  <label class="flex cursor-pointer items-center gap-1.5">
+                    <input
+                      id="fm-featured"
+                      type="checkbox"
+                      class="accent-accent"
+                    />
+                    <span>精选</span>
+                  </label>
+                  <label class="flex cursor-pointer items-center gap-1.5">
+                    <input
+                      id="fm-hideToc"
+                      type="checkbox"
+                      class="accent-accent"
+                    />
+                    <span>隐藏目录</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-2.5 lg:grid-cols-12">
+              <label class="flex flex-col gap-1 lg:col-span-6">
+                <span class="text-muted-foreground font-medium">
+                  简介 (description) *
+                </span>
+                <input
+                  id="fm-description"
+                  type="text"
+                  placeholder="一句话概括文章内容，用于列表页与 SEO 描述"
+                  class="border-border bg-background focus:border-accent rounded border px-2.5 py-1.5 text-xs outline-none"
+                />
+              </label>
+
+              <div class="flex flex-col gap-1 lg:col-span-6">
+                <div class="flex items-center justify-between">
+                  <span class="text-muted-foreground font-medium">
+                    标签 (tags) — 回车或逗号添加
+                  </span>
+                  <div class="flex items-center gap-3">
+                    <span
+                      id="draft-preview-hint"
+                      class="hidden text-[11px] text-amber-500"
+                    >
+                      草稿状态下博客详情页不显示
+                    </span>
+                    <button
+                      id="toggle-advanced-btn"
+                      type="button"
+                      class="text-accent hover:underline"
+                    >
+                      更多字段 ▾
+                    </button>
+                  </div>
+                </div>
+                <div
+                  class="border-border bg-background focus-within:border-accent flex min-h-[30px] flex-wrap items-center gap-1.5 rounded border px-2 py-1"
+                >
+                  <div id="tags-chips" class="flex flex-wrap gap-1"></div>
+                  <input
+                    id="fm-tag-input"
+                    type="text"
+                    placeholder="输入标签后回车..."
+                    class="min-w-[110px] flex-1 bg-transparent text-xs outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Collapsible Advanced Fields -->
+            <div
+              id="advanced-fields"
+              class="border-border hidden grid-cols-1 gap-2.5 border-t pt-2.5 lg:grid-cols-12"
+            >
+              <label class="flex flex-col gap-1 lg:col-span-2">
+                <span class="text-muted-foreground">作者 (author)</span>
+                <input
+                  id="fm-author"
+                  type="text"
+                  class="border-border bg-background rounded border px-2 py-1 text-xs outline-none"
+                />
+              </label>
+              <label class="flex flex-col gap-1 lg:col-span-3">
+                <span class="text-muted-foreground">更新时间 (modDatetime)</span>
+                <div class="flex gap-1">
+                  <input
+                    id="fm-modDatetime"
+                    type="text"
+                    placeholder="留空则不设置"
+                    class="border-border bg-background min-w-0 flex-1 rounded border px-2 py-1 font-mono text-xs outline-none"
+                  />
+                  <button
+                    id="set-mod-now-btn"
+                    type="button"
+                    class="border-border hover:border-accent rounded border px-2 py-1"
+                  >
+                    现在
+                  </button>
+                </div>
+              </label>
+              <label class="flex flex-col gap-1 lg:col-span-2">
+                <span class="text-muted-foreground">ogImage</span>
+                <input
+                  id="fm-ogImage"
+                  type="text"
+                  placeholder="可选图片路径/URL"
+                  class="border-border bg-background rounded border px-2 py-1 text-xs outline-none"
+                />
+              </label>
+              <label class="flex flex-col gap-1 lg:col-span-3">
+                <span class="text-muted-foreground">canonicalURL</span>
+                <input
+                  id="fm-canonicalURL"
+                  type="text"
+                  placeholder="可选原始链接"
+                  class="border-border bg-background rounded border px-2 py-1 text-xs outline-none"
+                />
+              </label>
+              <div class="flex items-end justify-between gap-2 lg:col-span-2">
+                <label class="flex cursor-pointer items-center gap-1.5 py-1">
+                  <input
+                    id="fm-hideEditPost"
+                    type="checkbox"
+                    class="accent-accent"
+                  />
+                  <span>隐藏编辑链接</span>
+                </label>
+                <button
+                  id="delete-post-btn"
+                  type="button"
+                  class="rounded border border-red-500/40 px-2.5 py-1 text-red-500 transition hover:bg-red-500 hover:text-white"
+                >
+                  删除文章
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Vditor Container -->
+          <div class="relative flex min-h-full shrink-0 flex-col">
+            <div id="vditor-container" class="w-full flex-1"></div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- New Post Modal -->
+    <div
+      id="new-post-modal"
+      class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4"
+    >
+      <div
+        class="border-border bg-background w-full max-w-md space-y-4 rounded-lg border p-5 shadow-xl"
+      >
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-semibold">新建文章</h2>
+          <button
+            id="close-new-modal-btn"
+            type="button"
+            class="text-muted-foreground hover:text-foreground text-sm"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="space-y-3 text-xs">
+          <label class="flex flex-col gap-1">
+            <span class="text-muted-foreground font-medium">文章标题 *</span>
+            <input
+              id="new-post-title"
+              type="text"
+              placeholder="例如：Transformer 注意力机制笔记"
+              class="border-border bg-background focus:border-accent rounded border px-3 py-2 text-sm outline-none"
+            />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-muted-foreground font-medium">
+              文件 Slug（决定 URL，支持子目录如 notes/my-post，留空自动生成）
+            </span>
+            <input
+              id="new-post-slug"
+              type="text"
+              placeholder="例如：transformer-attention-notes"
+              class="border-border bg-background focus:border-accent rounded border px-3 py-2 font-mono text-xs outline-none"
+            />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-muted-foreground font-medium">文件格式</span>
+            <select
+              id="new-post-ext"
+              class="border-border bg-background focus:border-accent rounded border px-3 py-2 text-xs outline-none"
+            >
+              <option value="md">.md（标准 Markdown）</option>
+              <option value="mdx">.mdx（支持嵌入组件）</option>
+            </select>
+          </label>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button
+            id="cancel-new-post-btn"
+            type="button"
+            class="border-border rounded border px-3 py-1.5 text-xs"
+          >
+            取消
+          </button>
+          <button
+            id="confirm-new-post-btn"
+            type="button"
+            class="bg-accent text-accent-foreground rounded px-4 py-1.5 text-xs font-medium"
+          >
+            创建并开始写作
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Publish Modal -->
+    <div
+      id="publish-modal"
+      class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4"
+    >
+      <div
+        class="border-border bg-background w-full max-w-lg space-y-4 rounded-lg border p-5 shadow-xl"
+      >
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-semibold">提交并推送到 GitHub</h2>
+          <button
+            id="close-publish-modal-btn"
+            type="button"
+            class="text-muted-foreground hover:text-foreground text-sm"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="space-y-3 text-xs">
+          <div>
+            <div class="text-muted-foreground mb-1 flex items-center justify-between">
+              <span>当前 Git 工作区改动</span>
+              <span id="git-branch-label" class="font-mono"></span>
+            </div>
+            <pre
+              id="git-status-list"
+              class="border-border bg-muted/40 max-h-32 overflow-y-auto rounded border p-2.5 font-mono text-[11px] whitespace-pre-wrap"
+            ></pre>
+          </div>
+
+          <label class="flex flex-col gap-1">
+            <span class="text-muted-foreground font-medium">提交信息 (Commit Message)</span>
+            <input
+              id="publish-commit-msg"
+              type="text"
+              class="border-border bg-background focus:border-accent rounded border px-3 py-2 text-xs outline-none"
+            />
+          </label>
+
+          <label class="flex cursor-pointer items-center gap-2">
+            <input
+              id="publish-run-check"
+              type="checkbox"
+              checked
+              class="accent-accent"
+            />
+            <span>推送前先运行 `astro check` 校验内容格式与类型</span>
+          </label>
+
+          <pre
+            id="publish-log-box"
+            class="border-border bg-muted/40 hidden max-h-40 overflow-y-auto rounded border p-2.5 font-mono text-[11px] whitespace-pre-wrap"
+          ></pre>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button
+            id="cancel-publish-btn"
+            type="button"
+            class="border-border rounded border px-3 py-1.5 text-xs"
+          >
+            关闭
+          </button>
+          <button
+            id="confirm-publish-btn"
+            type="button"
+            class="bg-accent text-accent-foreground rounded px-4 py-1.5 text-xs font-medium disabled:opacity-50"
+          >
+            确认提交并推送
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div
+      id="studio-toast"
+      class="bg-foreground text-background pointer-events-none fixed right-5 bottom-5 z-50 rounded-md px-3.5 py-2 text-xs font-medium opacity-0 shadow-lg transition-opacity duration-200"
+    ></div>
+
+    <script>
+      import "./studio-client";
+    </script>
+  </body>
+</html>

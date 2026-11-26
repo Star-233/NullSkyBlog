@@ -21,6 +21,7 @@ import {
   inlineTocDeprecation,
   rehypeInlineToc,
 } from "./src/utils/rehypeInlineToc";
+import { localStudio } from "./src/studio/integration";
 import config from "./astro-paper.config";
 
 export default defineConfig({
@@ -34,6 +35,7 @@ export default defineConfig({
         config.features?.showArchives !== false || !/\/archives\/?$/.test(page),
     }),
     inlineTocDeprecation(),
+    localStudio(),
   ],
   i18n: {
     locales: ["zh-cn"],
